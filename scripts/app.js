@@ -12,7 +12,7 @@ const sigma = 0.3;
 const U0 = 10;
 const R = 0.2;
 
-function findDistanceToSegment(pointX, pointY, wall){//Finding shortest path between a point and a line segment (used for exits, walls)
+function findDistanceToWall(pointX, pointY, wall){//Finding shortest path between a point and a line segment (used for exits, walls)
     let dx = wall.endX - wall.startX;
     let dy = wall.endY - wall.startY;
     let closest;
@@ -39,9 +39,39 @@ function findDistanceToSegment(pointX, pointY, wall){//Finding shortest path bet
         dx = pointX-closest[0];
         dy = pointY-closest[1];
     }
+
     return [closest,Math.sqrt(dx * dx + dy * dy)]
 }
+function findDistanceToExit(pointX, pointY, exit){//Finding shortest path between a point and a line segment (used for exits, exits)
+    let dx = exit.bufferedEndX - exit.bufferedStartX;
+    let dy = exit.bufferedEndY - exit.bufferedStartY;
+    let closest;
+    if ((dx == 0) && (dy == 0)){
+        // It's a point not a line segment.
+        closest = [exit.bufferedStartX, exit.bufferedStartY];
+        dx = pointX - exit.bufferedStartX;
+        dy = pointY - exit.bufferedStartY;
+        return [closest,Math.sqrt(dx * dx + dy * dy)];
+    }
+    let t = ((pointX-exit.bufferedStartX)*dx + (pointY-exit.bufferedStartY)*dy)/(dx*dx + dy*dy);
+    if(t<0){
+        closest = [exit.bufferedStartX, exit.bufferedStartY];
+        dx = pointX-exit.bufferedStartX;
+        dy = pointY-exit.bufferedStartY;
+    }
+    else if(t>1){
+        closest = [exit.bufferedEndX, exit.bufferedEndY];
+        dx = pointX-exit.bufferedEndX;
+        dy = pointY-exit.bufferedEndY;
+    }
+    else{
+        closest = [exit.bufferedStartX + t*dx, exit.bufferedStartY + t*dy]
+        dx = pointX-closest[0];
+        dy = pointY-closest[1];
+    }
 
+    return [closest,Math.sqrt(dx * dx + dy * dy)]
+}
 class Pedestrian{
     constructor(x,y,room){
         this.pos = [x,y]
@@ -80,18 +110,18 @@ class Pedestrian{
         return [Fx,Fy];
     }
     pedBorderRepulsivePotential(raB){//UaB in paper
-        return U0 * Math.exp(-1 * raB/R);
+        return U0 * 18**(-1 * raB/R);//Changed to 18 from e, now can actually reach exit (smallest door tested is 0.5m wide, any smaller unrealistic)
     }
     pedBorderRepulsiveForce(wall, delta = 0.001){//delta is the small step for finite difference differentiation 
-        let closest = findDistanceToSegment(this.pos[0], this.pos[1], wall);
+        let closest = findDistanceToWall(this.pos[0], this.pos[1], wall);
         let raB = closest[1];
         let UaB = this.pedBorderRepulsivePotential(raB);
-        let raBdx = findDistanceToSegment(this.pos[0]+delta, this.pos[1], wall)[1];
-        let raBdy = findDistanceToSegment(this.pos[0], this.pos[1]+delta, wall)[1];
+        let raBdx = findDistanceToWall(this.pos[0]-delta, this.pos[1], wall)[1];
+        let raBdy = findDistanceToWall(this.pos[0], this.pos[1]-delta, wall)[1];
         let UaBdx = this.pedBorderRepulsivePotential(raBdx);
         let UaBdy = this.pedBorderRepulsivePotential(raBdy);
-        let Fx = -1 * (UaBdx - UaB)/delta;//This is grad calculation, using finite difference partial differentiation
-        let Fy = -1 * (UaBdy - UaB)/delta;
+        let Fx = -1 * (UaB-UaBdx)/delta;//This is grad calculation, using finite difference partial differentiation
+        let Fy = -1 * (UaB - UaBdy)/delta;
         return ([Fx,Fy]);
     }
     calcBorderForces(){//Calculating the total border forces on the pedestrian
@@ -112,24 +142,25 @@ class Pedestrian{
         let targY;
         let targDist;
         let potentialTarget;
+        let desiredExit;
         for (let i = 0; i < this.room.exits.length; i++){//Finding closest target
-            potentialTarget = findDistanceToSegment(this.pos[0], this.pos[1], this.room.exits[i]);
+            potentialTarget = findDistanceToExit(this.pos[0], this.pos[1], this.room.exits[i]);
             targX = potentialTarget[0][0];
             targY = potentialTarget[0][1];
             targDist = Math.sqrt((targX - this.pos[0])**2 + (targY - this.pos[1])**2);
             if (targDist<minDist){
                 target = potentialTarget[0];
+                desiredExit = this.room.exits[i];
                 minDist = targDist;
             }
         }
-        
+        this.desiredExit = desiredExit;
         let targForce = this.calcTargetAttractiveForce(target);
         let borderForce = this.calcBorderForces();
         this.acc[0] = (targForce[0]+borderForce[0])/m;
         this.acc[1] = (targForce[1]+borderForce[1])/m;
         this.vel[0] += this.acc[0]*dt;
         this.vel[1] += this.acc[1]*dt;
-        //console.log(this.acc);
         this.pos[0] += this.vel[0] * dt;
         this.pos[1] += this.vel[1] * dt
         this.x = this.pos[0] * canvasWidth/this.room.width + canvasAdjust;//x coordinate on canvas
@@ -143,6 +174,7 @@ class Wall{//Wall class
         this.startY = startY;
         this.endX = endX;
         this.endY = endY;
+        this.type = 'wall';
     }
 }
 class Exit{//Exit
@@ -151,7 +183,20 @@ class Exit{//Exit
         this.startY = startY;
         this.endX = endX;
         this.endY = endY;
-        this.centre = [(this.startX+this.endX)/2,(this.startY+this.endY)/2];//Used initally for target finding, now using findDistanceToSegment().
+        this.centre = [(this.startX+this.endX)/2,(this.startY+this.endY)/2];//Used initally for target finding, now using findDistanceToWall().
+        this.type = 'exit';
+        this.bufferedStartX = this.startX;
+        this.bufferedEndX = this.endX;
+        this.bufferedStartY = this.startY;
+        this.bufferedEndY = this.endY;
+        if (this.startX === this.endX && this.endY - this.startY >= 0.5){
+            this.bufferedStartY = this.startY + 0.25;
+            this.bufferedEndY = this.endY - 0.25;
+        }
+        else if (this.startY === this.endY && this.endX - this.startX >=0.5){
+            this.bufferedStartX = this.startX + 0.25;
+            this.bufferedEndX = this.endX - 0.25;
+        }
     }
 }
 class Room{//Room
@@ -207,7 +252,35 @@ class Room{//Room
         this.create1Exit();
         this.breaksInWalls();//Parts of the wall with exits are "broken"
     }
-
+    step(){
+        let pedLen = this.pedestrians.length;
+        for(let i = 0; i<pedLen; i++){
+            this.pedestrians[i].move();
+        }
+        for (let i = 0; i<this.pedestrians.length; i++){
+            this.pedestrians[i].display();
+        }
+        let currExit;
+        let newPeds=[];
+        for(let i = 0; i<pedLen; i++){//Removing pedestrians upon reaching exit
+            newPeds.push(this.pedestrians[i]);
+            currExit = this.pedestrians[i].desiredExit;
+            if(currExit.startX === currExit.endX){//Vertical Exit
+                if (this.pedestrians[i].pos[1]<currExit.endY && this.pedestrians[i].pos[1]>currExit.startY && this.pedestrians[i].pos[0]>currExit.startX -0.01 && this.pedestrians[i].pos[0]<currExit.startX +0.01){
+                    newPeds.pop();
+                }
+            }
+            else if(currExit.startY === currExit.endY){//Horizontal Exit
+                if (this.pedestrians[i].pos[0]<currExit.endX && this.pedestrians[i].pos[0]>currExit.startX && this.pedestrians[i].pos[1]>currExit.startY - 0.01 && this.pedestrians[i].pos[1]<currExit.startY + 0.01){
+                    newPeds.pop();
+                }
+            }
+        }
+        this.pedestrians = newPeds;
+        
+            
+        
+    }
 }
 
 let r = new Room(10,10);
@@ -241,8 +314,5 @@ function draw(){
     for (let i = 0; i<r.exits.length; i++){//Drawing exits
         line(r.exits[i].startX*canvasWidth/r.width+ canvasAdjust,r.exits[i].startY*canvasHeight/r.height+ canvasAdjust,r.exits[i].endX*canvasWidth/r.width+ canvasAdjust,r.exits[i].endY*canvasHeight/r.height+ canvasAdjust);
     }
-    for (let i = 0; i<r.pedestrians.length; i++){//Drawing pedestrians
-        r.pedestrians[i].move();
-        r.pedestrians[i].display();
-    }
+    r.step()
 }
