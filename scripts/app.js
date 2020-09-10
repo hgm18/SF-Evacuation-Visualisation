@@ -12,7 +12,7 @@ const sigma = 0.3;
 const U0 = 10;
 const R = 0.2;
 
-function findDistanceToSegment(pointX, pointY, wall){
+function findDistanceToSegment(pointX, pointY, wall){//Finding shortest path between a point and a line segment (used for exits, walls)
     let dx = wall.endX - wall.startX;
     let dy = wall.endY - wall.startY;
     let closest;
@@ -51,6 +51,7 @@ class Pedestrian{
         this.acc = [0,0];
         this.diameterX = 0.3* canvasWidth/room.width;
         this.diameterY = 0.3* canvasHeight/room.height
+        //this.x and this.y is for canvas display, actual positions are in this.pos
         this.x = x * canvasWidth/room.width + canvasAdjust;
         this.y = y * canvasHeight/room.height + canvasAdjust;
         this.room = room
@@ -60,30 +61,28 @@ class Pedestrian{
         fill(0);
         stroke(0);
         ellipse(this.x,this.y,this.diameterX, this.diameterY);
-        console.log(this.pos);
     }
-    calcTargetAttractiveForce(target){
+    calcTargetAttractiveForce(target){//Calculating attractive force to a target
         let desiredVX;
         let desiredVY;
         let sX = Math.abs(this.pos[0]-target[0]);
         let sY = Math.abs(this.pos[1]-target[1]);
-        desiredVY = Math.sqrt((this.desired_speed**2)/(1+(sX/sY)**2))
-        desiredVX = Math.sqrt((this.desired_speed**2)/(1+(sY/sX)**2))
-        if (this.pos[0]>target[0]){
+        desiredVY = Math.sqrt((this.desired_speed**2)/(1+(sX/sY)**2))//Y component of desired velocity
+        desiredVX = Math.sqrt((this.desired_speed**2)/(1+(sY/sX)**2))//^ x component
+        if (this.pos[0]>target[0]){//desiedVX and VY always positive from previous calculation, so need to adjust here
             desiredVX *= -1;
         }
         if (this.pos[1]>target[1]){
             desiredVY *= -1;
         }
-        //console.log(desiredVX, desiredVY, this.desired_speed, Math.sqrt(desiredVX**2 + desiredVY **2));
         let Fx = m*(desiredVX - this.vel[0])/tau;
         let Fy = m*(desiredVY - this.vel[1])/tau;
         return [Fx,Fy];
     }
-    pedBorderRepulsivePotential(raB){//UaB
+    pedBorderRepulsivePotential(raB){//UaB in paper
         return U0 * Math.exp(-1 * raB/R);
     }
-    pedBorderRepulsiveForce(wall, delta = 0.001){
+    pedBorderRepulsiveForce(wall, delta = 0.001){//delta is the small step for finite difference differentiation 
         let closest = findDistanceToSegment(this.pos[0], this.pos[1], wall);
         let raB = closest[1];
         let UaB = this.pedBorderRepulsivePotential(raB);
@@ -91,11 +90,11 @@ class Pedestrian{
         let raBdy = findDistanceToSegment(this.pos[0], this.pos[1]+delta, wall)[1];
         let UaBdx = this.pedBorderRepulsivePotential(raBdx);
         let UaBdy = this.pedBorderRepulsivePotential(raBdy);
-        let Fx = -1 * (UaBdx - UaB)/delta;
+        let Fx = -1 * (UaBdx - UaB)/delta;//This is grad calculation, using finite difference partial differentiation
         let Fy = -1 * (UaBdy - UaB)/delta;
         return ([Fx,Fy]);
     }
-    calcBorderForces(){
+    calcBorderForces(){//Calculating the total border forces on the pedestrian
         let totalFx=0;
         let totalFy=0;
         let currentForce;
@@ -106,14 +105,14 @@ class Pedestrian{
         }
         return [totalFx, totalFy];
     }
-    move(){
+    move(){//Moving a pedestrian
         let target;
         let minDist = 9999;
         let targX;
         let targY;
         let targDist;
         let potentialTarget;
-        for (let i = 0; i < this.room.exits.length; i++){
+        for (let i = 0; i < this.room.exits.length; i++){//Finding closest target
             potentialTarget = findDistanceToSegment(this.pos[0], this.pos[1], this.room.exits[i]);
             targX = potentialTarget[0][0];
             targY = potentialTarget[0][1];
@@ -133,36 +132,29 @@ class Pedestrian{
         //console.log(this.acc);
         this.pos[0] += this.vel[0] * dt;
         this.pos[1] += this.vel[1] * dt
-        this.x = this.pos[0] * canvasWidth/this.room.width + canvasAdjust;
+        this.x = this.pos[0] * canvasWidth/this.room.width + canvasAdjust;//x coordinate on canvas
         this.y = this.pos[1] * canvasHeight/this.room.height + canvasAdjust;
 
     }
-    randomMove(){
-        this.x += random(-this.desired_speed*(dt) *canvasWidth/this.room.width, this.desired_speed* (dt) *canvasWidth/this.room.width); 
-        this.y += random(-this.desired_speed*(dt) * canvasHeight/this.room.height, this.desired_speed* (dt) *canvasHeight/this.room.height); 
-    }
-    
-
 }
-class Wall{
+class Wall{//Wall class
     constructor(startX, endX, startY, endY){
         this.startX = startX;
         this.startY = startY;
         this.endX = endX;
         this.endY = endY;
-        
     }
 }
-class Exit{
+class Exit{//Exit
     constructor(startX, endX, startY, endY){
         this.startX = startX;
         this.startY = startY;
         this.endX = endX;
         this.endY = endY;
-        this.centre = [(this.startX+this.endX)/2,(this.startY+this.endY)/2];
+        this.centre = [(this.startX+this.endX)/2,(this.startY+this.endY)/2];//Used initally for target finding, now using findDistanceToSegment().
     }
 }
-class Room{
+class Room{//Room
     constructor(width, height){
         this.width = width;
         this.height = height;
@@ -185,7 +177,7 @@ class Room{
         this.create1Wall(0,this.width,0,0);//Bottom Wall
         this.create1Wall(0,this.width,this.height,this.height);//Top Wall
     }
-    breaksInWalls(){//only if rectangular room 
+    breaksInWalls(){//Function o create 'breaks' in walls due to exits. only works for rectangular room (pretty sure)
         let exitStartX, exitStartY, exitEndX, exitEndY;
         for (let e = 0; e<this.exits.length; e++){
             exitStartX = this.exits[e].startX;
@@ -199,8 +191,8 @@ class Room{
                 let wallStartY = this.walls[w].startY;
                 let wallEndY = this.walls[w].endY;
                 if(wallStartX === wallEndX && exitStartX === exitEndX && wallStartX === exitStartX){//vertical wall
-                    this.walls[w].endY = exitStartY;
-                    this.walls.push(new Wall(wallStartX, wallEndX, exitEndY, this.height));
+                    this.walls[w].endY = exitStartY;//Adjusts end coordinate
+                    this.walls.push(new Wall(wallStartX, wallEndX, exitEndY, this.height));//Creates new wall for the remainder after the exit
                 }
                 else if (wallStartY === wallEndY && exitStartY === exitEndY && wallStartY === exitStartY){//horizontal wall
                     this.walls[w].endX = exitStartX;
@@ -209,11 +201,11 @@ class Room{
             } 
         }
     }
-    setupDemoRoom(){
-        this.generateWall();
-        this.create1Exit(0,0);
+    setupDemoRoom(){//Function to create a basic rom
+        this.generateWall();//Wall is generated
+        this.create1Exit(0,0);//Exits are placed
         this.create1Exit();
-        this.breaksInWalls();
+        this.breaksInWalls();//Parts of the wall with exits are "broken"
     }
 
 }
@@ -239,17 +231,17 @@ function setup(){
 
 }
 function draw(){
-    background(255);
+    background(255);//Whiting out canvas
     stroke(100);
-    for (let i = 0; i<r.walls.length; i++){
+    for (let i = 0; i<r.walls.length; i++){//Drawing walls
         line(r.walls[i].startX*canvasWidth/r.width + canvasAdjust,r.walls[i].startY*canvasHeight/r.height+ canvasAdjust,r.walls[i].endX*canvasWidth/r.width+ canvasAdjust,r.walls[i].endY*canvasHeight/r.height+ canvasAdjust);
 
     }
     stroke(255,0,0);
-    for (let i = 0; i<r.exits.length; i++){
+    for (let i = 0; i<r.exits.length; i++){//Drawing exits
         line(r.exits[i].startX*canvasWidth/r.width+ canvasAdjust,r.exits[i].startY*canvasHeight/r.height+ canvasAdjust,r.exits[i].endX*canvasWidth/r.width+ canvasAdjust,r.exits[i].endY*canvasHeight/r.height+ canvasAdjust);
     }
-    for (let i = 0; i<r.pedestrians.length; i++){
+    for (let i = 0; i<r.pedestrians.length; i++){//Drawing pedestrians
         r.pedestrians[i].move();
         r.pedestrians[i].display();
     }
