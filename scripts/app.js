@@ -197,7 +197,7 @@ class Pedestrian{
         if (target!==0){
             targForce = this.calcTargetAttractiveForce(target);
         }
-        //console.log(targForce);
+        console.log(target);
         borderForce = this.calcBorderForces();
         pedForces = this.calcPedPedForces();
         this.desiredExit = desiredExit;
@@ -373,15 +373,15 @@ console.log(r.pedestrians[0].exit_force[1]);
 //console.log(r.walls[0]);
 
 function drawArrow(vec0, vec1, myColor){ //code adapted from https://p5js.org/reference/#/p5.Vector/magSq and https://stackoverflow.com/questions/44874243/drawing-arrows-in-p5js
-    let offset = 12;
+    let offset = 4;
     stroke(myColor);
     strokeWeight(3);
     fill(myColor);
     push();
-    line(vec0.x, vec0.y, vec1.x, vec1.y);
-    let angle = atan2(vec0.y - vec1.y, vec0.x - vec1.x);
-    translate(vec1.x, vec1.y);
-    rotate(angle - HALF_PI);
+    line(vec0.x, vec0.y, vec0.x+vec1.x, vec0.y+vec1.y);
+    let angle = atan2(vec1.y, vec1.x);
+    translate(vec0.x+vec1.x, vec0.y+vec1.y);
+    rotate(angle + HALF_PI);
     triangle(-offset*0.5, offset, offset*0.5, offset, 0, -offset/2); 
     pop();
      
@@ -439,8 +439,8 @@ function draw(){
     for (let i=0; i<r.pedestrians.length; i++){
         //let Fx = (r.pedestrians[i].exit_force[0])*((canvasWidth+2*canvasAdjust)/r.width);
         //let Fy = (r.pedestrians[i].exit_force[1])*((canvasHeight+2*canvasAdjust)/r.height);
-        let Fx = r.pedestrians[i].exit_force*canvasWidth/r.width + canvasAdjust;
-        let Fy = r.pedestrians[i].exit_force*canvasHeight/r.height + canvasAdjust;
+        let Fx = r.pedestrians[i].exit_force[0]*canvasWidth/r.width;
+        let Fy = r.pedestrians[i].exit_force[1]*canvasHeight/r.height;
         let posx = r.pedestrians[i].x;
         let posy = r.pedestrians[i].y;
         
