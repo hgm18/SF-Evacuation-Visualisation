@@ -360,9 +360,62 @@ class Room{//Room
 
 let r = new Room(20,20)
 r.setupDemoRoom();
-r.generatePed(300);
+r.generatePed(1);
+for (let i=0; i<10; i++){
+
+r.step();
+console.log(r.pedestrians[0].x);
+console.log(r.pedestrians[0].y);
+console.log(r.pedestrians[0].exit_force[0]);
+console.log(r.pedestrians[0].exit_force[1]);
+}
 
 //console.log(r.walls[0]);
+
+function drawArrow(vec0, vec1, myColor){ //code adapted from https://p5js.org/reference/#/p5.Vector/magSq and https://stackoverflow.com/questions/44874243/drawing-arrows-in-p5js
+    let offset = 12;
+    stroke(myColor);
+    strokeWeight(3);
+    fill(myColor);
+    push();
+    line(vec0.x, vec0.y, vec1.x, vec1.y);
+    let angle = atan2(vec0.y - vec1.y, vec0.x - vec1.x);
+    translate(vec1.x, vec1.y);
+    rotate(angle - HALF_PI);
+    triangle(-offset*0.5, offset, offset*0.5, offset, 0, -offset/2); 
+    pop();
+     
+}
+
+
+
+function showExitForceVect(Fx, Fy, posx, posy){
+    let i = Fx;
+    let j = Fy;
+    let x = posx;
+    let y = posy;
+    let v0 = createVector(x, y) //pedestrian centre of sphere
+    let v1 = createVector(i, j); //force vector
+    drawArrow(v0, v1, 'black');
+    
+}
+
+function showBorderForceVect(Fx, Fy, posx, posy){
+    let i = Fx;
+    let j = Fy;
+    let x = posx;
+    let y = posy;
+    let v0 = createVector(x, y);
+    let v1 = createVector(i, j);
+    drawArrow(v0, v1, 'red');
+
+}
+
+function showPedForceVect(){
+
+
+}
+
 
 
 
@@ -381,9 +434,42 @@ function draw(){
         line(r.walls[i].startX*canvasWidth/r.width + canvasAdjust,r.walls[i].startY*canvasHeight/r.height+ canvasAdjust,r.walls[i].endX*canvasWidth/r.width+ canvasAdjust,r.walls[i].endY*canvasHeight/r.height+ canvasAdjust);
 
     }
+
+    //SHOWING EXIT FORCE
+    for (let i=0; i<r.pedestrians.length; i++){
+        //let Fx = (r.pedestrians[i].exit_force[0])*((canvasWidth+2*canvasAdjust)/r.width);
+        //let Fy = (r.pedestrians[i].exit_force[1])*((canvasHeight+2*canvasAdjust)/r.height);
+        let Fx = r.pedestrians[i].exit_force*canvasWidth/r.width + canvasAdjust;
+        let Fy = r.pedestrians[i].exit_force*canvasHeight/r.height + canvasAdjust;
+        let posx = r.pedestrians[i].x;
+        let posy = r.pedestrians[i].y;
+        
+        showExitForceVect(Fx,Fy,posx,posy);
+        
+    }
+
+    //SHOWING BORDER FORCE
+    /*for (let i=0; i<r.pedestrians.length; i++){
+        let Fx = (r.pedestrians[i].border_force[0])*((canvasWidth+2*canvasAdjust)/r.width);
+        let Fy = (r.pedestrians[i].border_force[1])*((canvasHeight+2*canvasAdjust)/r.height);
+        let posx = r.pedestrians[i].x;
+        let posy = r.pedestrians[i].y;
+        
+        showBorderForceVect(Fx,Fy,posx,posy);
+    }*/
+
+    
+
+
+
+   
     stroke(255,0,0);
     for (let i = 0; i<r.exits.length; i++){//Drawing exits
         line(r.exits[i].startX*canvasWidth/r.width+ canvasAdjust,r.exits[i].startY*canvasHeight/r.height+ canvasAdjust,r.exits[i].endX*canvasWidth/r.width+ canvasAdjust,r.exits[i].endY*canvasHeight/r.height+ canvasAdjust);
     }
+
+
     r.step()
+   
 }
+
