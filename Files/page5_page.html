@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    <link href="https://use.fontawesome.com/releases/v5.7.0/css/all.css" rel="stylesheet"
+        integrity='sha384-lZN37f5QGtY3VHgisS14W3ExzMWZxybE1SJSEsQp9S+oqd12jhcu+A56Ebc1zFSJ' crossorigin='anonymous'>
+    <link href="../styles/style.css" rel="stylesheet">
+    <link href="../styles/skeleton.css" rel="stylesheet">
+    <link href="../styles/index_Style.css" rel="stylesheet">
+    <link href="../styles/loadout_Style.css" rel="stylesheet">
+    <meta charset="utf-8">
+    <script src="https://unpkg.com/vue@2.3.3/dist/vue.js"></script>
+    <script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
+    <script src="../scripts/debounce_and_throttle.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/0.9.0/p5.js"></script>
+    <script src="../scripts/numeric/src/numeric.js"></script>
+    <script src="../scripts/math.min.js"></script>
+    <script type="text/x-mathjax-config"></script>
+</head>
+
+<body>
+    <script src="../scripts/p5.js"></script>
+    <div class="tab-content">
+        <ul class="nav nav-tabs nav-justified">
+            <li :class="['shaded' : '', 'active', 'tabLeft']">
+                <a data-toggle="tab" href="#instructions">Instructions</a>
+            </li>
+            <li :class="[ 'shaded' : '', 'tabRight']">
+                <a data-toggle="tab" href="#visualisation">Visualisation</a>
+            </li>
+        </ul>
+        <div id="instructions" class="tab-pane fade in active show">
+            <p class="main-text" style = "margin-top: 15px">
+                Select how many pedestrians you want to have in the room in the textbox (large numbers may run slowly/break model). Click on a location on a wall to create an exit (multiple exits may be created). Click on <b>"Start"</b> to run the visualisation. The arrows denoting the 3 forces acting on a pedestrian can be toggled with the <b>"Show/Hide Forces"</b> button.
+                <ul>
+                    <li>A <span style="color:black">black</span> circle indicates a pedestrian</li>
+                    <li>A <span style ="color: #F00000">red</span> line indicates an exit</li>
+                    <li>A <span style ="color: #eb8a3b">orange</span> arrow indicates the force experienced by a pedestrian due to the exit</li>
+                    <li>A <span style ="color: #0000FF">blue</span> arrow indicates the force experienced by a pedestrian due to surrounding walls</li>
+                    <li>A <span style ="color: #00ff00">green</span> arrow indicates the force experienced by a pedestrian due to another pedestrian</li>
+                    <li>A <span style ="color: #969696">grey</span> line represents a wall</li>
+                </ul>
+            </p>
+        </div>
+        <div id="visualisation" class="tab-pane fade">
+            <iframe src="pg5vis.html"
+                style="width: 96vw; height: 85vh; float: left; margin-top: 15px"></iframe>
+        </div>
+    </div>
+
+</body>
+
+
+
+</html>
